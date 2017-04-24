@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SQLS> 
+  <SQLBLOCK sqlName='SessionEvent' sqltype='select' sqlbinds='0'>
+    <sqltxt>
+    	select   sid,event,p1raw,p2, program,sql_id ,username,
+			decode(COMMAND,1,'CreatTable',2,'Insert',3,'SELECT',6,'UPDATE',7,'DELETE',9,'CREATE INDEX',11,'ALTER INDEX',12,'DROP TABLE',15,'ALTER TABLE','others') OPT
+			from  v$session  b  
+			where   event not like 'SQL%' and event not like 'rdbms ipc%' 
+			and event not like 'pmon%'  and event not like 'smon%' and event not like 'job%' 
+			and event not like 'gcs%' and event not like 'ges%' 
+			and event not like 'Streams%' and event not like 'DIAG%' 
+			and event not like 'class slave%' and event not like 'Space Manager%'
+			order by  sql_id,event
+		</sqltxt>
+  </SQLBLOCK>  
+  
+  <SQLBLOCK sqlName='EnqWait' sqltype='select' sqlbinds='0'>
+    <sqltxt>
+		  SELECT DECODE(request,0,'Holder: ','Waiter: ')||sid sess, 
+		         id1, id2, lmode, request, type
+		    FROM V$LOCK
+		   WHERE (id1,type) IN
+		             (SELECT id1,type FROM V$LOCK WHERE request>0) 
+		   ORDER BY id1, request
+		</sqltxt>
+  </SQLBLOCK>  
+
+  <SQLBLOCK sqlName='EventCnt' sqltype='select' sqlbinds='0'>
+    <sqltxt>
+    	select event,count(*) cnt from v$session where WAIT_CLASS not in ( 'Idle','Network') 
+    	and   event not like 'Streams%' and  event not like 'Space Manager%' group by event order by 2 
+		</sqltxt>
+  </SQLBLOCK>  
+  <SQLBLOCK sqlName='WaitClassCnt' sqltype='select' sqlbinds='0'>
+    <sqltxt>
+    	select WAIT_CLASS,count(*) cnt from v$session where WAIT_CLASS not in ( 'Idle','Network') 
+    	and   event not like 'Streams%' and  event not like 'Space Manager%' group by WAIT_CLASS order by 2 
+	</sqltxt>
+  </SQLBLOCK>  
+
+
+  <SQLBLOCK sqlName='getSqlTxtBySQLID' sqltype='select' sqlbinds='1'>
+    <sqltxt>
+	select a.* from table( dbms_xplan.display_cursor( ?,null,'ADVANCED') ) a 
+		 </sqltxt>
+  </SQLBLOCK>  
+  
+  <SQLBLOCK sqlName='getIndStats' sqltype='select' sqlbinds='2'>
+    <sqltxt>
+		select index_name,BLEVEL,NUM_ROWS,LEAF_BLOCKS,PARTITIONED 
+		from dba_indexes where table_name=? and table_owner=?
+		 </sqltxt>
+  </SQLBLOCK>  
+  
+  <SQLBLOCK sqlName='getTabStats' sqltype='select' sqlbinds='2'>
+    <sqltxt>
+		select owner,table_name,NUM_ROWS,BLOCKS,TEMPORARY,PARTITIONED,LAST_ANALYZED 
+		from dba_tables where table_name=? and owner=?
+		 </sqltxt>
+  </SQLBLOCK>  
+  
+  <SQLBLOCK sqlName='getIndCols' sqltype='select' sqlbinds='2'>
+    <sqltxt>
+		select INDEX_OWNER,INDEX_NAME,COLUMN_NAME,COLUMN_POSITION 
+		from dba_ind_columns where table_name=? and table_owner=?
+		 </sqltxt>
+  </SQLBLOCK>  
+  
+  <SQLBLOCK sqlName='getTabCols' sqltype='select' sqlbinds='2'>
+    <sqltxt>
+		select OWNER,TABLE_NAME,COLUMN_NAME,NUM_DISTINCT,DENSITY 
+		from dba_tab_columns where table_name=?  and owner=?
+		 </sqltxt>
+  </SQLBLOCK>  
+
+  <SQLBLOCK sqlName='TableSpaceFree' sqltype='select' sqlbinds='0'>
+    <sqltxt>
+select a.tablespace_name tablespace,
+round(sum(a.total1)/1024/1024, 2) Total,
+round(sum(a.total1)/1024/1024, 2)-round(sum(a.sum1)/1024/1024, 2) used,
+trunc(100-sum(a.sum1)/sum(a.total1)*100, 2) pct_used,
+round(sum(a.maxb)/1024/1024, 2) largest
+from
+(select tablespace_name, 0 total1, sum(bytes) sum1,
+max(bytes) MAXB,
+count(bytes) cnt
+from dba_free_space
+group by tablespace_name
+union
+select tablespace_name, sum(bytes) total1, 0, 0, 0 from dba_data_files
+group by tablespace_name) a
+group by a.tablespace_name
+order by a.tablespace_name
+		 </sqltxt>
+  </SQLBLOCK>  
+
+
+  <SQLBLOCK sqlName='TempUsage' sqltype='select' sqlbinds='0'>
+    <sqltxt>
+select b.sid,a.segtype,sum(blocks) blks from V$TEMPSEG_USAGE a ,v$Session b 
+where a.SESSION_ADDR=b.saddr
+group by  b.sid,segtype order by 3		 
+</sqltxt>
+  </SQLBLOCK>  
+
+
+  <SQLBLOCK sqlName='CursorPin' sqltype='select' sqlbinds='0'>
+    <sqltxt>
+select p2raw,to_number(substr(to_char(rawtohex(p2raw)),1,8),'XXXXXXXX') HolderSID 
+     from v$session 
+     where event = 'cursor: pin S wait on X'
+     </sqltxt>
+  </SQLBLOCK>  
+
+
+  <SQLBLOCK sqlName='TransCnt' sqltype='select' sqlbinds='0'>
+    <sqltxt>
+select  KTUXECFL,count(*) from x$ktuxe group by  KTUXECFL    
+ </sqltxt>
+  </SQLBLOCK>  
+
+  <SQLBLOCK sqlName='DeadTran' sqltype='select' sqlbinds='0'>
+    <sqltxt>
+ select sysdate, ADDR,KTUXEUSN,KTUXESLT,KTUXESQN,KTUXESIZ from x$ktuxe where  KTUXECFL='DEAD'
+ </sqltxt>
+  </SQLBLOCK>  
+
+
+  <SQLBLOCK sqlName='GlobalTrans' sqltype='select' sqlbinds='0'>
+    <sqltxt>
+SELECT 
+S.KSUSEMNM "ORIGIN",
+S.KSUUDLNA USERNAME,
+S.KSUSEPNM,
+S.INDX SID,
+S.KSUSESER SERIAL#,
+P.KSUPRPID SPID,
+G.K2GTITID_ORA "GTXID",
+DECODE(BITAND(KSUSEIDL, 11),
+1,
+'ACTIVE',
+0,
+DECODE(BITAND(KSUSEFLG, 4096), 0, 'INACTIVE', 'CACHED'),
+2,
+'SNIPED',
+3,
+'SNIPED',
+'KILLED') "STATUS",
+EVENT "WAITING"
+FROM X$K2GTE G, X$KTCXB T, X$KSUSE S, V$SESSION_WAIT W, X$KSUPR P
+WHERE G.K2GTDXCB = T.KTCXBXBA
+AND G.K2GTDSES = T.KTCXBSES
+AND S.ADDR = G.K2GTDSES
+AND W.SID = S.INDX
+AND S.KSUSEPRO = P.ADDR
+ORDER BY WAITING
+ </sqltxt>
+  </SQLBLOCK>  
+
+  <SQLBLOCK sqlName='UndoActive' sqltype='select' sqlbinds='0'>
+    <sqltxt>
+select a.inst_id,trunc(activeblks/totalblks*100,2) "Active%",trunc(unexpiredblks/totalblks*100,2) "Unexpire%"
+from 
+(select inst_id, sum(blocks) as totalblks from dba_data_files, gv$parameter
+where tablespace_name = value and  name='undo_tablespace' group by inst_id) a ,
+(select distinct inst_id,activeblks,unexpiredblks
+from gv$undostat where  end_time >(sysdate-2/(60*24))) b
+where a.inst_id=b.inst_id
+ </sqltxt>
+  </SQLBLOCK>  
+
+
+  <SQLBLOCK sqlName='UndoUsage' sqltype='select' sqlbinds='0'>
+    <sqltxt>
+select t.tablespace_name,t.status,sum(t.bytes)/1024/1024/1024 Totals from dba_undo_extents t 
+group by t.tablespace_name, t.status order by 1,2
+ </sqltxt>
+  </SQLBLOCK>  
+
+  <SQLBLOCK sqlName='RedoActiveCnt' sqltype='select' sqlbinds='0'>
+    <sqltxt>
+select status ,count(*) from v$log group by status
+ </sqltxt>
+  </SQLBLOCK> 
+   
+  <SQLBLOCK sqlName='TBSPctUse' sqltype='select' sqlbinds='0'>
+    <sqltxt>
+select a.tablespace_name tablespace,
+trunc(100-sum(a.sum1)/sum(a.total1)*100, 2) pct_used
+from
+(select tablespace_name, 0 total1, sum(bytes) sum1,
+max(bytes) MAXB,
+count(bytes) cnt
+from dba_free_space
+group by tablespace_name
+union
+select tablespace_name, sum(bytes) total1, 0, 0, 0 from dba_data_files
+group by tablespace_name) a
+group by a.tablespace_name
+order by a.tablespace_name
+		 </sqltxt>
+  </SQLBLOCK>  
+
+
+  <SQLBLOCK sqlName='TestLongSQL' sqltype='select' sqlbinds='0'>
+    <sqltxt>
+			select * from ht.staff for update
+		 </sqltxt>
+  </SQLBLOCK>  
+
+ 
+</SQLS>

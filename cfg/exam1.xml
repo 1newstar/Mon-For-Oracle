@@ -1,0 +1,78 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Monitor> 
+  <Host hostName='exam1' OS='Linux' IP='192.168.1.250'>
+  	<User>root</User>
+  	<Passwd>welcome</Passwd>
+    <mon sshCMD="df">
+       <COL threshold="20" item="/" />
+       <COL threshold="86" item="/home" />
+       <COL threshold="90" item="/oradata" />
+   </mon>    	
+    <mon sshCMD="freeMem">
+       <COL threshold="45" item="PctUsed" />
+       <COL threshold="3480000" item="Used" />
+   </mon>
+  </Host>
+
+  <DB TNSName='emdb' hostName='exam1' SysDBA='0'>
+    <DBUser>system</DBUser>
+    <DBPasswd>manager</DBPasswd>
+  	<mon sqlName="WaitClassCnt">
+  		<COL threshold="3" item="User I/O" />
+  		<COL threshold="3" item="System I/O" />
+  		<COL threshold="5" item="Scheduler" />
+  		<COL threshold="2" item="Queueing" />
+  		<COL threshold="2" item="Administrative" />
+  		<COL threshold="5" item="Application" />
+  		<COL threshold="10" item="Cluster" />
+  		<COL threshold="5" item="Commit" />
+  		<COL threshold="5" item="Concurrency" />
+  		<COL threshold="5" item="Configuration" />
+  		<COL threshold="5" item="Other" />
+  	</mon>
+  	<mon sqlName="EventCnt">
+  		<COL threshold="10" item="enq: TX - row lock contention" />
+  		<COL threshold="3" item="db file scattered read" />
+  		<COL threshold="3" item="latch free" />
+  	</mon>
+  	<mon sqlName="RedoActiveCnt">
+  		<COL threshold="1" item="ACTIVE" />
+  	</mon>
+  	<mon sqlName="TBSPctUse">
+  		<COL threshold="20" item="SYSTEM" /> 
+  		<COL threshold="86" item="TBS_CRM_INTF_DATA" />
+  		<COL threshold="90" item="TBS_CRM_INTF_IDX" />
+  	</mon>
+  </DB>  
+  <DB TNSName='oradb' hostName='exam1' SysDBA='0'>
+    <DBUser>system</DBUser>
+    <DBPasswd>welcome</DBPasswd>
+  	<mon sqlName="WaitClassCnt">
+  		<COL threshold="3" item="User I/O" />
+  		<COL threshold="3" item="System I/O" />
+  		<COL threshold="5" item="Scheduler" />
+  		<COL threshold="2" item="Queueing" />
+  		<COL threshold="2" item="Administrative" />
+  		<COL threshold="5" item="Application" />
+  		<COL threshold="10" item="Cluster" />
+  		<COL threshold="5" item="Commit" />
+  		<COL threshold="5" item="Concurrency" />
+  		<COL threshold="5" item="Configuration" />
+  		<COL threshold="5" item="Other" />
+  	</mon>
+  	<mon sqlName="EventCnt">
+  		<COL threshold="10" item="enq: TX - row lock contention" />
+  		<COL threshold="3" item="db file scattered read" />
+  		<COL threshold="3" item="latch free" />
+  	</mon>
+  	<mon sqlName="RedoActiveCnt">
+  		<COL threshold="1" item="ACTIVE" />
+  	</mon>
+  	<mon sqlName="TBSPctUse">
+  		<COL threshold="20" item="SYSTEM" /> 
+  		<COL threshold="86" item="TBS_CRM_INTF_DATA" />
+  		<COL threshold="90" item="TBS_CRM_INTF_IDX" />
+  	</mon>
+  </DB>  
+  
+</Monitor>
